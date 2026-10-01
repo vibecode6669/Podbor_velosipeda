@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Велоподбор</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: одна колонка 640px, один вопрос на экран, тонкий прогресс сверху; результат — стопка секций с линейными разделителями */
+:root{
+  --bg:#F2F3EF; --surface:#FFFFFF; --fg:#151816; --muted:#646a66; --line:#DCDFD9;
+  --accent:#2347D6; --accent-ink:#FFFFFF; --accent-soft:#E3E8FB;
+  --good:#1E7A47; --bad:#B4372B; --bad-soft:#F7E4E1; --good-soft:#E1F1E7;
+  --f-display:"Unbounded", "Onest", system-ui, sans-serif;
+  --f-body:"Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111312; --surface:#1A1D1B; --fg:#ECEEEA; --muted:#9BA19C; --line:#2C302D;
+  --accent:#8099FF; --accent-ink:#0E1220; --accent-soft:#1F2640;
+  --good:#5FC48A; --bad:#F08A7E; --bad-soft:#3A2220; --good-soft:#1B3325; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111312; --surface:#1A1D1B; --fg:#ECEEEA; --muted:#9BA19C; --line:#2C302D;
+  --accent:#8099FF; --accent-ink:#0E1220; --accent-soft:#1F2640;
+  --good:#5FC48A; --bad:#F08A7E; --bad-soft:#3A2220; --good-soft:#1B3325; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:20px 64px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:6px 18px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.01em}
+.brand svg{width:34px;height:22px;flex:none}
+.stepcount{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.progress{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:28px}
+.progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s ease}
+
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,7vw,38px);line-height:1.12;letter-spacing:-.01em}
+h2{font-family:var(--f-display);font-weight:500;font-size:clamp(20px,5.4vw,26px);line-height:1.2}
+h3{font-size:17px;font-weight:600}
+p{margin:0}
+.lead{color:var(--muted);font-size:17px;max-width:58ch}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+
+.intro{display:grid;gap:22px}
+.intro ul{margin:0;padding:0;list-style:none;display:grid;gap:10px;border-top:1px solid var(--line);padding-top:18px}
+.intro li{display:flex;gap:12px;align-items:baseline}
+.intro li b{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600;min-width:1.4em}
+
+.q{display:grid;gap:18px}
+.q .hint{color:var(--muted);font-size:15px}
+.opts{display:grid;gap:10px}
+.opt{display:flex;gap:14px;align-items:flex-start;text-align:left;width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:14px 16px;font:inherit;color:inherit;cursor:pointer;transition:border-color .15s, background .15s}
+.opt:hover{border-color:var(--muted)}
+.opt:focus-visible,.btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt .mark{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);margin-top:2px;display:grid;place-items:center}
+.opt[aria-pressed="true"] .mark{border-color:var(--accent);background:var(--accent)}
+.opt[aria-pressed="true"] .mark::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent-ink)}
+.opt .t{display:grid;gap:2px;min-width:0}
+.opt .t b{font-weight:600}
+.opt .t span{color:var(--muted);font-size:14px}
+
+.field{display:grid;gap:8px}
+.field label{font-weight:600}
+.numrow{display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:6px 14px}
+.numrow input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:22px;font-weight:600;color:var(--fg);padding:8px 0;font-variant-numeric:tabular-nums}
+.numrow input:focus{outline:none}
+.numrow:focus-within{border-color:var(--accent)}
+.numrow em{font-style:normal;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.two{grid-template-columns:1fr}}
+
+.split{display:grid;gap:14px;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:18px 16px}
+.split .bar{display:flex;height:34px;border-radius:6px;overflow:hidden;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.split .bar span{display:flex;align-items:center;padding-inline:10px;white-space:nowrap;overflow:hidden;transition:flex-basis .15s}
+.split .bar .c{background:var(--accent);color:var(--accent-ink)}
+.split .bar .o{background:var(--accent-soft);color:var(--fg);justify-content:flex-end}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px}
+.ticks{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+
+.nav{display:flex;gap:10px;margin-top:28px}
+.btn{font:inherit;font-weight:600;border-radius:var(--r);padding:14px 20px;border:1.5px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);flex:1}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.err{color:var(--bad);font-size:14px}
+
+/* результат */
+.res{display:grid;gap:34px}
+.res section{display:grid;gap:14px;border-top:1px solid var(--line);padding-top:24px}
+.res section:first-child{border-top:0;padding-top:0}
+.hero{display:grid;gap:12px}
+.match{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--good);background:var(--good-soft);border-radius:999px;padding:4px 12px;width:max-content}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted);background:var(--surface)}
+.profile{display:grid;gap:8px}
+.profile .bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line)}
+.profile .bar i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;background:var(--c)}
+
+dl.specs{margin:0;display:grid;grid-template-columns:minmax(110px,32%) 1fr;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+dl.specs dt,dl.specs dd{margin:0;padding:11px 14px;border-top:1px solid var(--line);min-width:0}
+dl.specs dt{color:var(--muted);font-size:14px}
+dl.specs dt:first-of-type,dl.specs dt:first-of-type + dd{border-top:0}
+@media (max-width:440px){dl.specs{grid-template-columns:1fr} dl.specs dd{border-top:0;padding-top:0} dl.specs dt{padding-bottom:2px}}
+
+.alts{display:grid;gap:10px}
+.alt{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.alt .pct{font-variant-numeric:tabular-nums;font-weight:600;color:var(--muted)}
+.alt p{grid-column:1/-1;color:var(--muted);font-size:14px}
+
+.nope{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.nope li{padding:12px 14px;border-radius:var(--r);background:var(--bad-soft);display:grid;gap:2px}
+.nope li b{color:var(--bad)}
+.nope li span{font-size:14px}
+
+.big{display:flex;flex-wrap:wrap;gap:12px}
+.big div{flex:1 1 140px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px}
+.big b{font-family:var(--f-display);font-weight:500;font-size:22px;font-variant-numeric:tabular-nums}
+.big span{font-size:13px;color:var(--muted)}
+
+.tier{display:grid;gap:6px;padding:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.tier .tag{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--accent)}
+.tier .price{font-weight:600;font-variant-numeric:tabular-nums}
+.tier p{font-size:15px}
+.tier.warn .tag{color:var(--bad)}
+.note{font-size:14px;color:var(--muted)}
+
+.plat{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.plat li{display:flex;gap:10px;justify-content:space-between;align-items:baseline;padding-block:8px;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+.plat a{color:var(--accent);font-weight:600;text-decoration:none}
+.plat a:hover{text-decoration:underline}
+.plat span{font-size:14px;color:var(--muted)}
+
+.check{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.check li label{display:flex;gap:12px;align-items:flex-start;cursor:pointer;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.check input{width:18px;height:18px;margin-top:3px;accent-color:var(--accent);flex:none}
+.check li label span{min-width:0}
+.check li small{display:block;color:var(--muted);font-size:13px}
+.check input:checked + span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+
+table.acc{width:100%;border-collapse:collapse;font-size:15px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table.acc td{padding:10px 14px;border-top:1px solid var(--line);vertical-align:top}
+table.acc tr:first-child td{border-top:0}
+table.acc td:last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted)}
+table.acc tr.sum td{font-weight:600;color:var(--fg);background:var(--accent-soft)}
+table.acc small{display:block;color:var(--muted);font-size:13px}
+
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions .btn{flex:1 1 180px}
+
+.models{display:grid;gap:10px}
+.model{display:grid;gap:8px;padding:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.model .row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.model .pr{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+.model .fit{font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;background:var(--good-soft);color:var(--good)}
+.model .fit.over{background:var(--bad-soft);color:var(--bad)}
+.model .links{display:flex;flex-wrap:wrap;gap:8px}
+.model .links a{font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+.model .links a:hover{border-color:var(--accent)}
+.say{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r);padding:14px 16px;white-space:pre-line;font-size:15px}
+.copyline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.copyline .btn{padding:10px 16px;font-size:14px}
+.copyline .ok{font-size:13px;color:var(--good)}
+dl.specs dd b{font-weight:600}
+.res,.res *{overflow-wrap:anywhere}
+html,body{overflow-x:clip}
+footer{margin-top:40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand" aria-label="Велоподбор">
+      <svg viewBox="0 0 34 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="15" r="6"/><circle cx="27" cy="15" r="6"/><path d="M7 15 13 5h10l4 10M13 5l5 10h-11M18 15l5-10M11 3h4M21 3h3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Велоподбор
+    </div>
+    <div class="stepcount" id="stepcount"></div>
+  </header>
+  <div class="progress" id="progressWrap" hidden><i id="progress"></i></div>
+  <main id="app"></main>
+  <footer>Цены ориентировочные для Казахстана на 2026 год и зависят от города, сезона и курса. Перед покупкой сверяйте актуальные предложения.</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const app = $("#app");
+const fmt = n => n.toLocaleString("ru-RU").replace(/,/g," ") + " ₸";
+const k = n => n >= 1000000 ? (Math.round(n/100000)/10).toString().replace(".",",")+" млн ₸" : Math.round(n/1000)+" тыс. ₸";
+
+/* ---------- Типы велосипедов ---------- */
+const TYPES = {
+  city:{name:"Городской / комфорт",short:"Прямая посадка, крылья, багажник, минимум обслуживания.",
+    weight:"14–18 кг",
+    specs:{"Рама":"Алюминий или сталь, низкая или средняя верхняя труба — удобно садиться в обычной одежде","Колёса и шины":"28\" (700C), шины 35–47 мм с защитой от проколов","Тормоза":"Ободные V-brake допустимы, лучше роллерные или дисковые","Трансмиссия":"Планетарная втулка на 3–8 скоростей (Shimano Nexus) — не боится грязи и зимы","Вилка":"Жёсткая или с коротким ходом 40–60 мм","Обязательно":"Крылья, подножка, багажник, защита цепи"},
+    tiers:[[100000,"Начальный уровень","Stels, Forward, Stark, Format: сталь или алюминий, 3–7 скоростей, ободные тормоза. Нормально для поездок до 5–7 км."],[180000,"Оптимум","Merida, Giant, Cube, Author: планетарка Nexus 3–7, крылья и багажник с завода, роллерные или дисковые тормоза."],[350000,"Комфорт без забот","Nexus 8 / Alfine, ременной привод, динамо-фара, лёгкая рама. Почти не требует обслуживания."]],
+    whyNot:"Тяжёлый и неторопливый: на дистанциях от 20 км и на подъёмах будет утомлять."},
+  hybrid:{name:"Гибрид / фитнес",short:"Универсал: быстрее горного по асфальту, крепче шоссейного на ямах.",
+    weight:"11–14 кг",
+    specs:{"Рама":"Алюминий, крепления под крылья и багажник","Колёса и шины":"28\" (700C), шины 35–45 мм с лёгким протектором","Тормоза":"Гидравлические дисковые — лучший вариант для ежедневной езды","Трансмиссия":"1×9 … 3×8, кассета до 34–42 зубов для подъёмов","Вилка":"Жёсткая (легче) или короткий ход 50–63 мм с блокировкой","Обратите внимание":"Отверстия под багажник и крылья, ширина покрышки не меньше 35 мм для бордюров"},
+    tiers:[[150000,"Начальный уровень","Trinx, Format, Stark, Forward: алюминий, 21–24 скорости, механические диски."],[250000,"Оптимум","Merida Crossway, Giant Escape, Trek FX / Dual Sport, Cube Nature: гидравлика, качественный привод Shimano."],[450000,"Лёгкий и быстрый","Лёгкая рама, 1×10–1×12, гидравлика, хорошие колёса. Можно ездить 50+ км."]],
+    whyNot:"На тропах и камнях не хватит вилки и ширины покрышки."},
+  hardtail:{name:"Горный хардтейл (МТБ)",short:"Амортизационная вилка, широкие шины, надёжность на грунте и в горах.",
+    weight:"12–15 кг",
+    specs:{"Рама":"Алюминий, современная геометрия","Колёса и шины":"29\" при росте от 165 см, 27,5\" — ниже. Шины 2,2–2,4\"","Тормоза":"Только гидравлические дисковые, роторы 160–180 мм","Трансмиссия":"1×10 … 1×12 или 2×9, большая звезда кассеты 42–51 зуб","Вилка":"Ход 100–120 мм, лучше воздушная. Пружинная «ради галочки» на дешёвых моделях бесполезна","Обратите внимание":"Ось 15 мм в вилке, крепление под дропер-подсед"},
+    tiers:[[150000,"Начальный уровень","Trinx, Stels Navigator, Format, Forward: подходят для грунтовок и парков, не для серьёзных трейлов."],[250000,"Оптимум","Merida Big Nine / Big Seven, Giant Talon, Trek Marlin 5–6, Cube Aim: гидравлика, нормальная вилка, рама на вырост."],[500000,"Для гор всерьёз","Trek Marlin 7+, Merida Big Nine 300+, Cube Attention: воздушная вилка, 1×12, рама под апгрейды."]],
+    whyNot:"По асфальту медленнее и тяжелее гибрида: широкие зубастые шины крадут скорость."},
+  fullsus:{name:"Двухподвес (трейл / эндуро)",short:"Подвеска спереди и сзади для крутых спусков и сложных троп.",
+    weight:"14–16 кг",
+    specs:{"Рама":"Алюминий или карбон, ход задней подвески 120–160 мм","Колёса и шины":"29\" или 27,5\", шины 2,3–2,6\"","Тормоза":"Гидравлика, 4-поршневые калиперы, роторы 180–203 мм","Трансмиссия":"1×12","Подвеска":"Воздушные вилка и амортизатор с регулировкой отбоя","Обратите внимание":"Подшипники маятника, наличие сервиса амортизаторов в городе"},
+    tiers:[[700000,"Начальный уровень","Merida One-Twenty / One-Forty, Giant Stance, Trek Fuel начальных версий."],[1200000,"Оптимум","Воздушная подвеска Fox / RockShox среднего уровня, дропер, 1×12 Deore / SX-NX."],[2000000,"Топ","Карбон, топовая подвеска, лёгкие колёса."]],
+    whyNot:"Дорогой, тяжёлый и требует сервиса. Двухподвес дешевле 600 тыс. ₸ новым — почти всегда «игрушка», которая ломается."},
+  road:{name:"Шоссейный",short:"Максимальная скорость на хорошем асфальте, руль-баран.",
+    weight:"8–10 кг",
+    specs:{"Рама":"Алюминий или карбон, эндуранс-геометрия для новичков","Колёса и шины":"700C, шины 28–32 мм (не 23–25 — по нашим дорогам жёстко)","Тормоза":"Дисковые (лучше гидравлика)","Трансмиссия":"2×8 Claris и выше, лучше 2×10–11 Tiagra / 105","Вилка":"Жёсткая","Обратите внимание":"Просвет под шины 32 мм и шире — пригодится на плохом асфальте"},
+    tiers:[[350000,"Начальный уровень","Merida Scultura / Giant Contend / Trek Domane AL: Shimano Claris или Sora."],[600000,"Оптимум","Tiagra / 105, дисковые тормоза, лёгкие колёса."],[1200000,"Для гонок","Карбоновая рама, 105 Di2 / Ultegra, аэро-колёса."]],
+    whyNot:"Узкие шины и низкая посадка: бордюры, ямы и грунтовки — не для него."},
+  gravel:{name:"Грэвел",short:"Руль-баран и широкие шины: быстро по асфальту, уверенно по грунту и степным трассам.",
+    weight:"9,5–11 кг",
+    specs:{"Рама":"Алюминий или сталь, много креплений под фляги и сумки","Колёса и шины":"700C, шины 38–45 мм, полуслики или лёгкий протектор","Тормоза":"Дисковые, лучше гидравлика","Трансмиссия":"1×11 / 2×10 с лёгкими передачами (кассета 11–42)","Вилка":"Жёсткая, с креплениями под багаж","Обратите внимание":"Просвет под шины 45 мм+, крепления под багажник — для дальних поездок"},
+    tiers:[[400000,"Начальный уровень","Cube Nuroad, Merida Silex начальных версий, Giant Revolt, Format: Shimano Claris / Sora, механические диски."],[700000,"Оптимум","GRX 400–600, гидравлика, лёгкие колёса."],[1200000,"Для марафонов","Карбон, 1×12 / 2×12, бескамерные колёса."]],
+    whyNot:"Для бордюров и крутых горных троп ему не хватает амортизации."},
+  fixie:{name:"Фикс / синглспид",short:"Одна передача, минимум деталей, стиль.",
+    weight:"9–11 кг",
+    specs:{"Рама":"Сталь (хромомолибден) или алюминий","Колёса и шины":"700C, шины 28–35 мм","Тормоза":"Обязательно хотя бы передний ручной тормоз, даже на фиксе","Трансмиссия":"Флип-флоп втулка: фикс + свободный ход — можно переключить","Вилка":"Жёсткая","Обратите внимание":"Передаточное отношение 44×17 или 46×18 для города; на 48×15 — тяжело в подъём"},
+    tiers:[[80000,"Начальный уровень","Format, Stark, Trinx и локальные бренды: сталь, флип-флоп втулка."],[180000,"Оптимум","Хромомолибден, хорошие колёса, лёгкий вес."],[350000,"Кастом","Сборка под себя у мастеров."]],
+    whyNot:"Одна передача: в горах, против степного ветра и на длинных дистанциях это мучение."},
+  cruiser:{name:"Круизер",short:"Широкий руль, мягкое седло, расслабленная посадка для неспешных прогулок.",
+    weight:"15–20 кг",
+    specs:{"Рама":"Сталь или алюминий, длинная колёсная база","Колёса и шины":"26\", широкие баллонные шины 2,1–2,35\"","Тормоза":"Ножной (торпедо) + ручной передний","Трансмиссия":"1–7 скоростей, лучше планетарная втулка","Вилка":"Жёсткая","Обратите внимание":"Сможете ли ставить ногу на землю, не вставая с седла — главный признак правильной посадки"},
+    tiers:[[100000,"Начальный уровень","Stels, Forward, Schwinn начальных моделей."],[200000,"Оптимум","Electra и аналоги: технология «flat foot», планетарка 3–7."],[400000,"Дизайнерские","Кастомные круизеры, ременной привод."]],
+    whyNot:"Тяжёлый и медленный: подъёмы и дистанции больше 10 км на нём утомляют."},
+  ebike:{name:"Электровелосипед",short:"Мотор помогает крутить педали: подъёмы и ветер больше не проблема.",
+    weight:"20–28 кг",
+    specs:{"Мотор":"250–500 Вт. Мотор-колесо дешевле, мотор в каретке (Bafang M, Shimano EP, Bosch) — тяжелее в цене, но лучше в горах","Батарея":"Литий 36–48 В, от 13 Ач (≈ 50–80 км). Съёмная — чтобы заряжать дома","Тормоза":"Только гидравлические дисковые","Колёса":"Усиленные обода, 36 спиц, шины от 2\"","Обратите внимание":"Гарантия на батарею, наличие сервиса в городе, датчик каденса или крутящего момента"},
+    tiers:[[350000,"Начальный уровень","Китайские e-bike 250–350 Вт с мотор-колесом, батарея 10–13 Ач."],[600000,"Оптимум","Мотор Bafang, батарея 14–17 Ач, гидравлика. Хороший курьерский вариант."],[1200000,"Премиум","Мотор в каретке Shimano / Bosch, датчик крутящего момента, батарея от 600 Вт·ч."]],
+    whyNot:"Тяжёлый (20+ кг), дорогой в обслуживании, привлекает воров."},
+  folding:{name:"Складной",short:"Складывается за 10–20 секунд: в лифт, багажник, офис.",
+    weight:"11–15 кг",
+    specs:{"Рама":"Алюминий, надёжный замок рамы без люфта","Колёса и шины":"20\" (манёвренный) или 24\" (комфортнее на ямах)","Тормоза":"V-brake или дисковые","Трансмиссия":"Планетарка 3–7 или 7–8 скоростей","Обратите внимание":"Максимальная нагрузка, длина подседела под ваш рост, размер в сложенном виде"},
+    tiers:[[80000,"Начальный уровень","Stels Pilot, Forward, Shulz начальных версий."],[180000,"Оптимум","Tern, Dahon, Shulz: лёгкая рама, надёжный замок."],[500000,"Премиум","Brompton и аналоги: самый компактный складной формат."]],
+    whyNot:"Маленькие колёса плохо едут по ямам и грунту, на скорости менее устойчив."}
+};
+const ORDER = Object.keys(TYPES);
+
+/* Параметры для фильтров маркетплейсов и примеры моделей: [название, поисковый запрос, ориентир. цена нового ₸, комментарий] */
+const EXTRA = {
+  city:{cat:"Городской",mat:"Алюминий или сталь",brakes:"Роллерные, ободные V-brake или дисковые",gears:"3–8 (лучше планетарная втулка)",susp:"Жёсткая вилка или ход до 60 мм",tires:"35–47 мм (1,4–1,8\")",
+    q:"городской велосипед 28 планетарная втулка",
+    models:[["Stels Navigator 300","Stels Navigator 300",110000,"сталь, 28\", простая и крепкая"],["Forward Dortmund","Forward Dortmund",150000,"планетарка Nexus 3, крылья, багажник"],["Schwinn Wayfarer","Schwinn Wayfarer",230000,"классика с багажником"],["Cube Ella Ride","Cube Ella Ride",330000,"низкая рама, Nexus 7"],["Trek Verve 1","Trek Verve 1",380000,"комфорт-гибрид, гидравлика"]]},
+  hybrid:{cat:"Гибридный / городской (кросс)",mat:"Алюминий",brakes:"Гидравлические дисковые",gears:"16–27 (или 1×9 … 1×10)",susp:"Жёсткая или ход 50–63 мм с блокировкой",tires:"35–45 мм",
+    q:"гибридный велосипед 28 гидравлика",
+    models:[["Stels Cross 150","Stels Cross 150",160000,"бюджетный кросс 28\""],["Format 5342","Format 5342",220000,"лёгкий алюминий, диски"],["Giant Escape 3","Giant Escape",270000,"быстрый городской гибрид"],["Merida Crossway 100","Merida Crossway",300000,"вилка с ходом, гидравлика"],["Trek FX 2","Trek FX 2",420000,"лёгкий, гидравлика"],["Trek Dual Sport 2","Trek Dual Sport",470000,"гибрид для асфальта и грунта"],["Cube Nature","Cube Nature",450000,"универсал, 2×9"]]},
+  hardtail:{cat:"Горный (MTB), хардтейл",mat:"Алюминий",brakes:"Гидравлические дисковые",gears:"1×10 … 1×12 или 2×9",susp:"Передняя, ход 100–120 мм (лучше воздушная)",tires:"2,2–2,4\"",
+    q:"горный велосипед 29 гидравлика",
+    models:[["Stels Navigator 900 MD","Stels Navigator 900",150000,"начальный, для грунтовок"],["Format 1414","Format 1414",210000,"начальный, механические диски"],["Merida Big.Nine 20","Merida Big Nine 20",290000,"гидравлика, 29\""],["Giant Talon 3","Giant Talon",290000,"гидравлика, удобная геометрия"],["Trek Marlin 5","Trek Marlin 5",340000,"популярный, рама на вырост"],["Trek Marlin 6","Trek Marlin 6",430000,"воздушная вилка в новых версиях"],["Cube Attention","Cube Attention",600000,"воздушная вилка, 1×12"],["Merida Big.Nine 300","Merida Big Nine 300",620000,"лёгкая рама, хорошая вилка"]]},
+  fullsus:{cat:"Горный (MTB), двухподвес",mat:"Алюминий или карбон",brakes:"Гидравлические, 4 поршня, роторы 180–203 мм",gears:"1×12",susp:"Двухподвес, ход 120–160 мм, воздушная",tires:"2,3–2,6\"",
+    q:"двухподвес велосипед 29",
+    models:[["Giant Stance 29","Giant Stance",900000,"начальный трейл"],["Merida One-Twenty","Merida One-Twenty",1050000,"лёгкий трейл"],["Cube Stereo One22","Cube Stereo",1200000,"универсальный трейл"],["Trek Fuel EX 5","Trek Fuel EX",1500000,"трейл с регулировками"]]},
+  road:{cat:"Шоссейный",mat:"Алюминий (карбон — от высокого бюджета)",brakes:"Дисковые",gears:"2×8 … 2×11 (Claris, Sora, Tiagra, 105)",susp:"Нет, жёсткая вилка",tires:"28–32 мм",
+    q:"шоссейный велосипед дисковые тормоза",
+    models:[["Merida Scultura Rim 100","Merida Scultura",380000,"Claris, лёгкий"],["Giant Contend 3","Giant Contend",420000,"эндуранс, удобный"],["Trek Domane AL 2","Trek Domane AL",460000,"эндуранс, для новичка"],["Giant Contend AR 2","Giant Contend AR",650000,"широкие шины, диски"],["Trek Domane AL 4","Trek Domane AL 4",720000,"Tiagra, диски"]]},
+  gravel:{cat:"Гравийный (грэвел) / циклокросс",mat:"Алюминий или сталь",brakes:"Дисковые, лучше гидравлика",gears:"1×11 или 2×10, кассета до 42 зубов",susp:"Нет, жёсткая вилка с креплениями",tires:"38–45 мм",
+    q:"гравийный велосипед",
+    models:[["Cube Nuroad","Cube Nuroad",500000,"начальный грэвел"],["Giant Revolt 2","Giant Revolt",600000,"большой просвет под шины"],["Merida Silex 200","Merida Silex",700000,"удобная посадка для дальних поездок"],["Trek Checkpoint ALR 3","Trek Checkpoint",820000,"много креплений под багаж"]]},
+  fixie:{cat:"Фикс / синглспид / трековый",mat:"Сталь (хромомолибден) или алюминий",brakes:"Хотя бы передний ручной тормоз",gears:"1 (флип-флоп втулка)",susp:"Нет",tires:"28–35 мм",
+    q:"фикс велосипед",
+    models:[["Фикс 700C флип-флоп","фикс флип флоп 700C",90000,"бюджетные локальные бренды"],["Format 5341","Format 5341",170000,"синглспид, алюминий"],["Fuji Feather","Fuji Feather",280000,"хромомолибден, классика"]]},
+  cruiser:{cat:"Круизер / комфорт",mat:"Сталь или алюминий",brakes:"Ножной + ручной передний",gears:"1–7 (лучше планетарка)",susp:"Нет",tires:"2,1–2,35\" (26\")",
+    q:"велосипед круизер 26",
+    models:[["Круизер 26\" начального уровня","круизер 26",110000,"сталь, ножной тормоз"],["Schwinn Huron","Schwinn Huron",180000,"мягкое седло, широкие шины"],["Electra Cruiser 1","Electra Cruiser",250000,"классический круизер"],["Electra Townie 7D","Electra Townie",300000,"посадка «нога на землю», 7 скоростей"]]},
+  ebike:{cat:"Электровелосипед",mat:"Алюминий",brakes:"Гидравлические дисковые",gears:"7–9 + режимы помощи",susp:"Передняя вилка 60–100 мм",tires:"от 2\" (или 26×4\" фэт)",
+    q:"электровелосипед 36V",
+    models:[["Электровелосипед 36V 350W, 13 Ач","электровелосипед 36V 13Ah",380000,"базовый, мотор-колесо"],["Электровелосипед Bafang 48V","электровелосипед Bafang 48V",600000,"курьерский вариант"],["Giant Explore E+","Giant Explore E",1300000,"мотор в каретке, туринг"],["Cube Kathmandu Hybrid","Cube Kathmandu Hybrid",1500000,"Bosch, батарея 625 Вт·ч"]]},
+  folding:{cat:"Складной",mat:"Алюминий",brakes:"V-brake или дисковые",gears:"1–8",susp:"Нет или короткий ход",tires:"20\" или 24\"",
+    q:"складной велосипед 20",
+    models:[["Stels Pilot 450","Stels Pilot 450",90000,"бюджетный складной 20\""],["Shulz Hopper","Shulz Hopper",230000,"лёгкий, планетарка"],["Dahon","Dahon",300000,"проверенный складной бренд"],["Tern Link","Tern Link",400000,"быстрое складывание, жёсткая рама"],["Brompton","Brompton",900000,"самый компактный"]]}
+};
+const LINK = {
+  kaspi: q => "https://kaspi.kz/shop/search/?text="+encodeURIComponent(q),
+  olx: (q,to) => "https://www.olx.kz/hobbi-otdyh-i-sport/sport-otdyh/velo/velosipedy/q-"+encodeURIComponent(q.replace(/\s+/g,"-"))+"/"+(to?"?search%5Bfilter_float_price%3Ato%5D="+to:""),
+  kobj: q => "https://obyavleniya.kaspi.kz/hobby-otdyh/velosipedy/?term="+encodeURIComponent(q)
+};
+
+/* ---------- Вопросы ---------- */
+const STEPS = [
+  {id:"body",type:"body",title:"Ваш рост и вес",hint:"Рост нужен для размера рамы. Вес — для выбора прочных колёс, рамы и допустимой нагрузки."},
+  {id:"place",title:"Где вы живёте и будете ездить чаще всего?",opts:[
+    ["city","Город","Асфальт, светофоры, тротуары"],["village","Село / пригород","Грунтовки, гравий, разбитый асфальт"],
+    ["mountain","Горная местность","Подъёмы, спуски, перепады высот"],["steppe","Степь","Длинные ровные трассы, сильный ветер"]]},
+  {id:"purpose",title:"Для чего прежде всего нужен велосипед?",opts:[
+    ["errands","Каждый день по делам","Работа, магазин, учёба"],["courier","Курьерская работа","Много часов и километров в день"],
+    ["sport","Спорт и тренировки","Скорость, нагрузка, результат"],["rare","Редкие прогулки","Выходные, парк, набережная"],
+    ["tour","Путешествия и дальние поездки","Выезды за город на целый день"]]},
+  {id:"surface",title:"По какому покрытию будете ездить?",opts:[
+    ["sidewalk","Тротуары и бордюры","Заезды на бордюры, плитка, ямы"],["road","Автодороги, асфальт","Ровный асфальт, обочина"],
+    ["dirt","Грунт, гравий, тропы","Бездорожье"],["mixed","Всего понемногу","Смешанный маршрут"]]},
+  {id:"split",type:"split",title:"Сколько езды в городе, а сколько — вылазок на трассы?",hint:"Подвиньте ползунок, чтобы показать примерную долю за сезон."},
+  {id:"style",title:"Есть предпочтения по стилю?",opts:[
+    ["practical","Без разницы, главное — практичность","Подберём по задачам"],["fixie","Фикс / синглспид","Модно, просто, одна передача"],
+    ["cruiser","Комфортный круизер","Неспешно и красиво"],["roadlook","Спортивный, с рулём-бараном","Шоссе или грэвел"],
+    ["electric","Электро","Помощь мотора"],["folding","Складной","Компактное хранение"]]},
+  {id:"dist",title:"Сколько километров в день в среднем?",opts:[
+    ["d5","До 5 км",""],["d15","5–15 км",""],["d40","15–40 км",""],["d40p","Больше 40 км",""]]},
+  {id:"storage",title:"Где будете хранить велосипед?",opts:[
+    ["nolift","Квартира, без лифта или узкий лифт","Будете носить по лестнице"],["lift","Квартира с лифтом",""],
+    ["house","Частный дом, гараж",""],["outside","На улице / у работы","Нужна защита от кражи"]]},
+  {id:"cond",title:"Новый или б/у?",opts:[
+    ["new","Только новый","Гарантия и чистая история"],["used","Б/у","Больше велосипеда за те же деньги"],["any","Рассмотрю оба варианта",""]]},
+  {id:"budget",title:"Какую сумму готовы потратить на велосипед?",hint:"Без учёта аксессуаров — их посчитаем отдельно.",opts:[
+    [80000,"До 80 тыс. ₸",""],[150000,"80–150 тыс. ₸",""],[300000,"150–300 тыс. ₸",""],
+    [500000,"300–500 тыс. ₸",""],[1000000,"500 тыс. – 1 млн ₸",""],[2000000,"Больше 1 млн ₸",""]]}
+];
+
+/* ---------- Веса ---------- */
+const W = {
+  place:{
+    city:{city:3,hybrid:3,fixie:2,folding:2,ebike:2,road:1,cruiser:1,gravel:1,fullsus:-2},
+    village:{hardtail:3,hybrid:2,city:2,gravel:2,ebike:1,fullsus:-1,road:-2,fixie:-2,folding:-1},
+    mountain:{hardtail:3,fullsus:3,ebike:1,gravel:1,fixie:-3,cruiser:-3,city:-2,folding:-3},
+    steppe:{gravel:3,hybrid:2,road:2,hardtail:1,ebike:1,fixie:-2,cruiser:-2,folding:-2,fullsus:-1}},
+  purpose:{
+    errands:{city:3,hybrid:3,folding:2,ebike:2,cruiser:1,fixie:1,hardtail:1,gravel:1,road:-1,fullsus:-2},
+    courier:{ebike:4,hybrid:3,hardtail:2,gravel:2,city:1,fixie:1,cruiser:-2,folding:-1,fullsus:-2},
+    sport:{road:4,gravel:3,hardtail:3,fullsus:2,hybrid:1,fixie:1,city:-2,cruiser:-3,folding:-3,ebike:-2},
+    rare:{cruiser:3,city:3,hybrid:2,folding:2,hardtail:1,road:-2,fullsus:-2},
+    tour:{gravel:4,hybrid:2,hardtail:2,road:1,ebike:1,cruiser:-2,fixie:-3,folding:-2}},
+  surface:{
+    sidewalk:{hardtail:2,hybrid:2,city:1,gravel:1,ebike:1,folding:-1,road:-3,fixie:-1},
+    road:{road:3,gravel:2,hybrid:2,fixie:2,city:1,ebike:1,folding:1,hardtail:-1,fullsus:-3},
+    dirt:{hardtail:3,gravel:2,fullsus:2,hybrid:1,road:-3,fixie:-3,city:-1,cruiser:-1,folding:-3},
+    mixed:{hybrid:3,gravel:2,hardtail:2,city:1,ebike:1,road:-1,fixie:-1,fullsus:-1}},
+  style:{
+    practical:{},fixie:{fixie:6},cruiser:{cruiser:6},roadlook:{road:4,gravel:4},electric:{ebike:6},folding:{folding:6}},
+  dist:{
+    d5:{folding:2,city:1,cruiser:1,fixie:1},d15:{hybrid:1,city:1,ebike:1},
+    d40:{hybrid:1,gravel:2,road:2,ebike:2,hardtail:1,cruiser:-2,folding:-2},
+    d40p:{road:3,gravel:3,ebike:1,hybrid:1,cruiser:-3,folding:-3,city:-1,fixie:-1}},
+  storage:{
+    nolift:{folding:2,fixie:1,road:1,gravel:1,ebike:-3,fullsus:-1,cruiser:-2,city:-1},
+    lift:{},house:{},outside:{city:1,ebike:-2,road:-1,fullsus:-1,gravel:-1}}
+};
+const LABEL = {
+  place:{city:"город",village:"село и пригород",mountain:"горная местность",steppe:"степь"},
+  purpose:{errands:"поездки по делам",courier:"курьерская работа",sport:"спорт",rare:"редкие прогулки",tour:"дальние поездки"},
+  surface:{sidewalk:"тротуары и бордюры",road:"асфальтовые дороги",dirt:"грунт и тропы",mixed:"смешанное покрытие"},
+  style:{practical:"практичность",fixie:"стиль фикс",cruiser:"круизер",roadlook:"руль-баран",electric:"электро",folding:"складной"},
+  dist:{d5:"до 5 км в день",d15:"5–15 км в день",d40:"15–40 км в день",d40p:"40+ км в день"},
+  storage:{nolift:"нести по лестнице",lift:"квартира с лифтом",house:"частный дом",outside:"хранение на улице"}
+};
+
+/* ---------- Состояние ---------- */
+const A = {height:"",weight:"",cityPct:70,trips:"steppe"};
+let step = -1;
+
+function render(){
+  const pw = $("#progressWrap"), sc = $("#stepcount");
+  if(step < 0){ pw.hidden = true; sc.textContent = ""; renderIntro(); }
+  else if(step >= STEPS.length){ pw.hidden = true; sc.textContent = "Результат"; renderResult(); }
+  else { pw.hidden = false; sc.textContent = "Вопрос " + (step+1) + " из " + STEPS.length;
+    $("#progress").style.width = ((step)/STEPS.length*100)+"%"; renderStep(STEPS[step]); }
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function renderIntro(){
+  app.innerHTML = `<div class="intro">
+    <span class="eyebrow">Подбор велосипеда · Казахстан</span>
+    <h1>Купите велосипед под свой маршрут, а не под витрину</h1>
+    <p class="lead">Чаще всего покупают «горный» для асфальта или шоссейный для бордюров. Ответьте на 10 вопросов — и получите тип велосипеда, размер рамы, нужные характеристики, бюджет и список того, что брать не стоит.</p>
+    <ul>
+      <li><b>1</b><span>Маршрут, местность и задачи</span></li>
+      <li><b>2</b><span>Доля города и вылазок на степные или горные трассы</span></li>
+      <li><b>3</b><span>Новый или б/у, бюджет и где искать</span></li>
+      <li><b>4</b><span>Размер рамы, чек-лист осмотра и аксессуары</span></li>
+    </ul>
+    <div class="nav"><button class="btn primary" id="go">Начать подбор · 2 минуты</button></div>
+  </div>`;
+  $("#go").onclick = () => { step = 0; render(); };
+}
+
+function optHTML(s){
+  return `<div class="opts" role="group" aria-label="${s.title}">` + s.opts.map(o =>
+    `<button type="button" class="opt" data-v="${o[0]}" aria-pressed="${String(A[s.id])===String(o[0])}">
+      <span class="mark"></span><span class="t"><b>${o[1]}</b>${o[2]?`<span>${o[2]}</span>`:""}</span></button>`).join("") + `</div>`;
+}
+
+function renderStep(s){
+  let body = "";
+  if(s.type === "body"){
+    body = `<div class="two">
+      <div class="field"><label for="h">Рост</label><div class="numrow"><input id="h" inputmode="numeric" type="number" min="120" max="215" placeholder="175" value="${A.height}"><em>см</em></div></div>
+      <div class="field"><label for="w">Вес</label><div class="numrow"><input id="w" inputmode="numeric" type="number" min="25" max="200" placeholder="75" value="${A.weight}"><em>кг</em></div></div>
+    </div><p class="err" id="err" hidden></p>`;
+  } else if(s.type === "split"){
+    body = `<div class="split">
+      <div class="bar"><span class="c" id="sc"></span><span class="o" id="so"></span></div>
+      <input type="range" id="pct" min="0" max="100" step="10" value="${A.cityPct}" aria-label="Доля езды по городу">
+      <div class="ticks"><span>Только трассы</span><span>Только город</span></div>
+    </div>
+    <div id="tripsBox" class="q"><h3>Какие вылазки за город?</h3>${optHTML({id:"trips",title:"Тип вылазок",opts:[
+      ["steppe","Степные трассы","Асфальт и грунтовки, ветер, длинные прямые"],
+      ["mountain","Горные дороги и тропы","Подъёмы, серпантины, камни"],
+      ["both","И те, и другие",""]]})}</div>`;
+  } else body = optHTML(s);
+
+  app.innerHTML = `<div class="q">
+    <h2>${s.title}</h2>${s.hint?`<p class="hint">${s.hint}</p>`:""}
+    ${body}
+    <div class="nav"><button class="btn" id="back">Назад</button><button class="btn primary" id="next">${step===STEPS.length-1?"Показать результат":"Далее"}</button></div>
+  </div>`;
+
+  const next = $("#next");
+  const valid = () => {
+    if(s.type==="body") return true;
+    if(s.type==="split") return true;
+    return A[s.id] !== undefined;
+  };
+  next.disabled = !valid();
+
+  app.querySelectorAll(".opts").forEach(group => {
+    const isTrips = group.closest("#tripsBox");
+    group.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+      const key = isTrips ? "trips" : s.id;
+      let v = b.dataset.v; if(key==="budget") v = Number(v);
+      A[key] = v;
+      group.querySelectorAll(".opt").forEach(x => x.setAttribute("aria-pressed", x===b ? "true":"false"));
+      next.disabled = !valid();
+      if(!isTrips && s.type!=="split") setTimeout(()=>{ step++; render(); }, 180);
+    });
+  });
+
+  if(s.type==="split"){
+    const r = $("#pct"), tb = $("#tripsBox");
+    const upd = () => { A.cityPct = Number(r.value);
+      const c = A.cityPct, o = 100-c;
+      $("#sc").style.flexBasis = c+"%"; $("#so").style.flexBasis = o+"%";
+      $("#sc").textContent = c>=15 ? "Город "+c+"%" : ""; $("#so").textContent = o>=15 ? "Трассы "+o+"%" : "";
+      tb.hidden = o === 0; };
+    r.oninput = upd; upd();
+  }
+  $("#back").onclick = () => { step--; render(); };
+  next.onclick = () => {
+    if(s.type==="body"){
+      const h = Number($("#h").value), w = Number($("#w").value), e = $("#err");
+      if(!(h>=120 && h<=215)){ e.textContent="Укажите рост от 120 до 215 см."; e.hidden=false; return; }
+      if(!(w>=25 && w<=200)){ e.textContent="Укажите вес от 25 до 200 кг."; e.hidden=false; return; }
+      A.height=h; A.weight=w;
+    }
+    step++; render();
+  };
+}
+
+/* ---------- Расчёт ---------- */
+function score(){
+  const S = {}; const why = {}; ORDER.forEach(t=>{S[t]=0; why[t]=[];});
+  const add = (map, label, mult=1) => { for(const t in map){ S[t]+=map[t]*mult; if(map[t]*mult>=2) why[t].push(label); } };
+  ["place","purpose","surface","style","dist","storage"].forEach(key => { if(A[key]!==undefined) add(W[key][A[key]], LABEL[key][A[key]]); });
+  const c = A.cityPct, o = 100-c;
+  if(c >= 70) add({city:2,hybrid:1,fixie:1,folding:1,cruiser:1,fullsus:-2}, "в основном город");
+  const m = o/100*2; // до 2× на чистые трассы
+  if(o > 0){
+    if(A.trips==="steppe"||A.trips==="both") add({gravel:3,road:2,hybrid:2,hardtail:1,cruiser:-2,folding:-2,fixie:-2}, `степные трассы ${o}%`, m);
+    if(A.trips==="mountain"||A.trips==="both") add({hardtail:3,fullsus:2,gravel:1,ebike:1,cruiser:-3,folding:-3,fixie:-3,city:-2}, `горные вылазки ${o}%`, m);
+  }
+  if(A.weight > 110){ S.road-=1; S.folding-=2; S.fullsus-=1; }
+  const ranked = ORDER.slice().sort((a,b)=>S[b]-S[a]);
+  return {S, why, ranked};
+}
+
+function frameSize(type){
+  const h = A.height;
+  const mtb = h<155?["XS","13–14\""]:h<165?["S","15–16\""]:h<175?["M","17–18\""]:h<185?["L","19–20\""]:h<193?["XL","21–22\""]:["XXL","23\"+"];
+  const rd  = h<155?["XS","47–49 см"]:h<165?["S","50–52 см"]:h<175?["M","53–55 см"]:h<185?["L","56–58 см"]:h<193?["XL","59–61 см"]:["XXL","62 см+"];
+  const wheelMtb = h<165 ? "27,5\"" : "29\"";
+  switch(type){
+    case "hardtail": case "fullsus": return {size:mtb[0],detail:"рама "+mtb[1],wheel:wheelMtb};
+    case "hybrid": case "city": case "ebike": return {size:mtb[0],detail:"рама "+mtb[1],wheel:h<155?"26–27,5\"":"28\" (700C)"};
+    case "road": case "gravel": case "fixie": return {size:rd[0],detail:"рама "+rd[1],wheel:"700C"};
+    case "cruiser": return {size:h<165?"S":h<180?"M":"L",detail:"проверьте, что стопа достаёт до земли с седла",wheel:"26\""};
+    case "folding": return {size:"Единый",detail:`подседел должен выдвигаться до ~${Math.round(h*0.47)} см от каретки`,wheel:h>185?"24\"":"20\""};
+  }
+}
+
+function weightNotes(){
+  const w = A.weight, n = [];
+  if(w >= 120){ n.push("Ищите модели с допустимой нагрузкой от 150 кг — она указана в паспорте. У обычных велосипедов предел 110–130 кг вместе с грузом.");
+    n.push("Колёса на 36 спицах с двойными ободами, шины от 2,2\" (или от 42 мм).");
+    n.push("Избегайте карбона, складных велосипедов и пружинных вилок дешёвого уровня.");}
+  else if(w > 100){ n.push("Проверьте максимальную нагрузку в паспорте: нужно от 130 кг с учётом рюкзака и груза.");
+    n.push("Колёса на 32–36 спицах с двойными ободами, гидравлические тормоза.");
+    n.push("Вилку лучше воздушную — её настраивают под вес. Пружинная бюджетная будет «пробиваться».");}
+  else if(w < 50){ n.push("Под ваш вес подойдёт облегчённая рама; дешёвая пружинная вилка не будет работать — она слишком жёсткая. Лучше жёсткая вилка или воздушная.");}
+  else n.push("Ваш вес в стандартном диапазоне: подойдут обычные модели, с запасом прочности.");
+  return n;
+}
+
+function traps(top){
+  const t = [];
+  t.push(["Супермаркетный «горный» за 50–80 тыс. ₸","Тяжёлая сталь, пружинная вилка-имитация, слабые тормоза. Через сезон ремонт обойдётся в половину цены."]);
+  if(A.surface==="sidewalk"||A.place==="village") t.push(["Узкие шины 23–28 мм","На бордюрах и ямах — частые проколы «змеиный укус» и восьмёрки колёс."]);
+  if(A.place==="mountain"||A.trips==="mountain"||A.trips==="both") t.push(["Велосипед без лёгких передач","В горах нужна кассета с большой звездой 42+ зуба — иначе подъёмы пешком."]);
+  if(A.place==="steppe"||A.trips==="steppe") t.push(["Вертикальная посадка на длинных трассах","Степной ветер превращает «парус» из тела в тормоз. Нужна более спортивная посадка или руль-баран."]);
+  if(A.purpose==="courier") t.push(["Ободные тормоза и одна передача для курьерства","По 6–10 часов в день, в дождь и с грузом — только диски и надёжный привод."]);
+  if(A.storage==="nolift") t.push(["Велосипед тяжелее 15 кг","Если каждый день нести по лестнице — это быстро надоест."]);
+  if(A.storage==="outside") t.push(["Дорогой велосипед при хранении на улице","Без двух замков и страховки дорогой велосипед быстро уводят."]);
+  if(A.budget && A.budget < 600000) t.push(["Двухподвес дешевле 600 тыс. ₸","Подвеска без настроек, люфты в шарнирах и лишние 3–4 кг."]);
+  return t;
+}
+
+function budgetBlock(type){
+  const T = TYPES[type], B = A.budget, cond = A.cond, out = [];
+  const tiersNew = T.tiers.filter(x=>x[0] <= B);
+  const usedK = 0.55;
+  const tiersUsed = T.tiers.filter(x=>Math.round(x[0]*usedK) <= B);
+  const fmtRange = (i, factor) => { const from = Math.round(T.tiers[i][0]*factor/10000)*10000;
+    const to = T.tiers[i+1] ? Math.round(T.tiers[i+1][0]*factor/10000)*10000 : null;
+    return to ? `${k(from)} – ${k(to)}` : `от ${k(from)}`; };
+  if(cond!=="used"){
+    if(tiersNew.length){ const i = tiersNew.length-1;
+      out.push(`<div class="tier"><span class="tag">Новый · ${T.tiers[i][1]}</span><span class="price">${fmtRange(i,1)}</span><p>${T.tiers[i][2]}</p></div>`); }
+    else out.push(`<div class="tier warn"><span class="tag">Новый · не хватает бюджета</span><span class="price">нормальный новый — от ${k(T.tiers[0][0])}</span><p>В вашей сумме новым этот тип будет только супермаркетного уровня. ${cond==="new"?"Рассмотрите б/у или накопите до нижней границы.":"Выгоднее взять б/у."}</p></div>`);
+  }
+  if(cond!=="new"){
+    if(tiersUsed.length){ const i = tiersUsed.length-1;
+      out.push(`<div class="tier"><span class="tag">Б/у, 2–5 лет · ${T.tiers[i][1]}</span><span class="price">${fmtRange(i,usedK)}</span><p>${T.tiers[i][2]} На вторичке такой велосипед стоит примерно 45–60% от цены нового.</p></div>`); }
+    else out.push(`<div class="tier warn"><span class="tag">Б/у · не хватает бюджета</span><span class="price">от ${k(Math.round(T.tiers[0][0]*usedK/10000)*10000)}</span><p>Даже на вторичке приличный велосипед этого типа стоит дороже. Посмотрите альтернативы ниже.</p></div>`);
+  }
+  return out.join("");
+}
+
+function accessories(top){
+  const L = [["U-замок или цепь с замком","8–25 тыс."],["Свет передний и задний (USB)","6–20 тыс."],["Шлем","10–30 тыс."],["Насос и ремкомплект, запасная камера","6–12 тыс."]];
+  let lo=30, hi=87;
+  const add = (n,a,b,note) => { L.push([n+(note?`<small>${note}</small>`:""), `${a}–${b} тыс.`]); lo+=a; hi+=b; };
+  if(["errands","rare"].includes(A.purpose) && !["road","fixie"].includes(top)) add("Крылья и подножка",6,18,"если не идут в комплекте");
+  if(A.purpose==="errands") add("Багажник или корзина",6,15);
+  if(A.purpose==="courier"){ add("Термокороб или сумка на багажник",15,40); add("Держатель для телефона",3,8); add("Дождевик и перчатки",8,20); add("Второй замок",8,20,"велосипед часто остаётся у подъездов"); }
+  if(A.purpose==="sport"){ add("Велокомпьютер",15,60); add("Фляга и флягодержатель",4,8); add("Контактные педали и обувь",30,80,"можно позже"); }
+  if(A.purpose==="tour"){ add("Подсумки / байкпакинг-сумки",20,60); add("Две фляги и держатели",6,12); }
+  if(A.place==="mountain"||A.trips==="mountain"||A.trips==="both"){ add("Перчатки и очки",6,15); add("Мультитул и аптечка",5,12); }
+  if(A.place==="steppe"||A.trips==="steppe"){ add("Бафф и солнцезащитные очки",5,15,"ветер, пыль, солнце"); add("Вторая запасная камера и бортировки",3,6); }
+  if(A.storage==="outside" && A.purpose!=="courier") add("Второй замок",8,20);
+  if(top==="ebike") add("Зарядка для дома / запасная",15,40,"по желанию");
+  return {L, lo, hi};
+}
+
+const USED_CHECK = [
+  ["Рама и вилка без трещин и вмятин","Особенно у рулевого стакана, каретки и сварных швов. Трещина = отказ от покупки."],
+  ["Велосипед не краденый","Попросите чек, фото с покупки, проверьте серийный номер под кареткой. Слишком низкая цена — тревожный сигнал."],
+  ["Нет люфта в рулевой","Зажмите передний тормоз и покачайте велосипед вперёд-назад — стука быть не должно."],
+  ["Колёса ровные, без восьмёрок","Раскрутите колесо — обод не должен бить в тормоз. Спицы натянуты одинаково."],
+  ["Втулки и каретка без люфта","Покачайте колесо и шатуны в стороны. Хруст при вращении — износ подшипников."],
+  ["Цепь и кассета не изношены","Цепь не оттягивается от передней звезды больше чем на пару миллиметров; зубья не «акульи»."],
+  ["Тормоза держат","Гидравлика: ручка не проваливается до руля. Диски без глубоких борозд."],
+  ["Переключения чёткие","Прощёлкайте все передачи на ходу — без проскальзываний и треска."],
+  ["Вилка работает плавно","Нажмите и отпустите: без стуков, масляных подтёков на ногах, ход плавный."],
+  ["Размер рамы подходит именно вам","Обязательно прокатитесь: колени не упираются в руль, ноги почти выпрямлены в нижней точке."],
+  ["Цена рынка","Сравните 5–10 похожих объявлений на OLX и Kaspi Объявлениях; заложите 10–30 тыс. ₸ на ТО после покупки."]
+];
+
+const PLATFORMS = {
+  new:[["Kaspi Магазин","https://kaspi.kz/shop/search/?text=%D0%B2%D0%B5%D0%BB%D0%BE%D1%81%D0%B8%D0%BF%D0%B5%D0%B4","рассрочка, сравнение цен; смотрите на продавца"],
+       ["Официальные веломагазины и дилеры","https://www.google.com/search?q=%D0%B2%D0%B5%D0%BB%D0%BE%D0%BC%D0%B0%D0%B3%D0%B0%D0%B7%D0%B8%D0%BD+%D0%B4%D0%B8%D0%BB%D0%B5%D1%80+Merida+Giant+Trek+Cube+%D0%9A%D0%B0%D0%B7%D0%B0%D1%85%D1%81%D1%82%D0%B0%D0%BD","примерка, сборка, гарантия, первое ТО"],
+       ["Halyk Market","https://halykmarket.kz/","рассрочка, акции"],
+       ["Wildberries / Ozon","https://ozon.kz/search/?text=%D0%B2%D0%B5%D0%BB%D0%BE%D1%81%D0%B8%D0%BF%D0%B5%D0%B4","бюджетные модели; сборку и настройку лучше доверить мастеру"]],
+  used:[["OLX.kz","https://www.olx.kz/hobbi-otdyh-i-sport/sport-otdyh/velo/velosipedy/","самый большой выбор б/у"],
+        ["Kaspi Объявления","https://obyavleniya.kaspi.kz/hobby-otdyh/velosipedy/","удобный фильтр по типам и городам"],
+        ["Велосообщества в Telegram и Instagram","https://www.google.com/search?q=%D0%B2%D0%B5%D0%BB%D0%BE%D1%81%D0%B8%D0%BF%D0%B5%D0%B4+%D0%B1%2F%D1%83+%D0%B1%D0%B0%D1%80%D0%B0%D1%85%D0%BE%D0%BB%D0%BA%D0%B0+telegram+%D0%9A%D0%B0%D0%B7%D0%B0%D1%85%D1%81%D1%82%D0%B0%D0%BD","продают увлечённые велосипедисты, техника обычно ухожена"],
+        ["Веломастерские","https://www.google.com/search?q=%D0%B2%D0%B5%D0%BB%D0%BE%D0%BC%D0%B0%D1%81%D1%82%D0%B5%D1%80%D1%81%D0%BA%D0%B0%D1%8F+%D1%80%D1%8F%D0%B4%D0%BE%D0%BC","иногда продают обслуженные б/у, могут проверить ваш вариант"]]
+};
+
+function maxLoad(){ return Math.max(110, Math.ceil((A.weight+25)/10)*10); }
+function priceFilter(type){
+  const T = TYPES[type], B = A.budget, cond = A.cond;
+  const f = cond==="used" ? 0.55 : (cond==="any" ? 0.55 : 1);
+  const lo = Math.round(T.tiers[0][0]*f/10000)*10000;
+  if(B >= 2000000) return "от "+k(Math.max(lo,1000000));
+  if(lo > B) return "от "+k(lo)+" (выше вашего бюджета)";
+  return k(lo)+" – "+k(B);
+}
+function filterRows(type){
+  const E = EXTRA[type], T = TYPES[type], fs = frameSize(type);
+  return [
+    ["Тип / категория", E.cat],
+    ["Состояние", {new:"Новый",used:"Б/у",any:"Новый или б/у"}[A.cond]],
+    ["Цена", priceFilter(type)],
+    ["Размер рамы", fs.size+" · "+fs.detail],
+    ["Диаметр колёс", fs.wheel],
+    ["Материал рамы", E.mat],
+    ["Тормоза", E.brakes],
+    ["Количество скоростей", E.gears],
+    ["Амортизация", E.susp],
+    ["Ширина покрышек", E.tires],
+    ["Вес велосипеда", T.weight + (A.storage==="nolift"?" (вам — до 13 кг)":"")],
+    ["Макс. нагрузка", "не меньше "+maxLoad()+" кг (ваш вес + груз)"]
+  ];
+}
+function sellerText(type){
+  const T = TYPES[type], E = EXTRA[type], fs = frameSize(type), c = A.cityPct;
+  const trips = {steppe:"степные трассы",mountain:"горные дороги",both:"степь и горы"}[A.trips];
+  return `Здравствуйте! Подбираю велосипед: ${T.name.toLowerCase()}.
+Задача: ${LABEL.purpose[A.purpose]}, ${LABEL.dist[A.dist]}. Местность — ${LABEL.place[A.place]}, покрытие — ${LABEL.surface[A.surface]}${c<100?`, ${c}% город и ${100-c}% ${trips}`:""}.
+Мой рост ${A.height} см, вес ${A.weight} кг. Нужен размер рамы ${fs.size} (${fs.detail}), колёса ${fs.wheel}, допустимая нагрузка от ${maxLoad()} кг.
+Важно: тормоза — ${E.brakes.toLowerCase()}; передачи — ${E.gears}; амортизация — ${E.susp.toLowerCase()}; покрышки ${E.tires}.
+Бюджет: ${priceFilter(type)}. Что можете предложить и можно ли прокатиться перед покупкой?`;
+}
+function modelsBlock(type){
+  const E = EXTRA[type], B = A.budget, cond = A.cond, U = 0.55;
+  const fits = m => cond==="new" ? m[2] <= B*1.1 : cond==="used" ? m[2]*U <= B : m[2]*U <= B;
+  let list = E.models.filter(fits); let over = false;
+  if(!list.length){ list = E.models.slice().sort((a,b)=>a[2]-b[2]).slice(0,2); over = true; }
+  const usedTo = B >= 2000000 ? null : B;
+  return `${over?`<p class="note">В вашем бюджете подходящих моделей этого типа нет — показываем самые доступные.</p>`:""}
+  <div class="models">${list.map(m=>{
+    const newOk = m[2] <= B*1.1, usedOk = m[2]*U <= B;
+    const tag = over ? `<span class="fit over">выше бюджета</span>` : cond==="new" ? `<span class="fit">новым в бюджете</span>` : (newOk?`<span class="fit">в бюджете и новым</span>`:`<span class="fit">в бюджете б/у</span>`);
+    return `<div class="model">
+      <div class="row"><h3>${m[0]}</h3>${tag}</div>
+      <div class="row"><span class="note">${m[3]}</span><span class="pr">новый ~${k(m[2])} · б/у ~${k(Math.round(m[2]*U/10000)*10000)}</span></div>
+      <div class="links">
+        ${cond!=="used"?`<a href="${LINK.kaspi(m[1])}" target="_blank" rel="noopener">Kaspi Магазин</a>`:""}
+        ${cond!=="new"?`<a href="${LINK.olx(m[1],usedTo)}" target="_blank" rel="noopener">OLX б/у</a><a href="${LINK.kobj(m[1])}" target="_blank" rel="noopener">Kaspi Объявления</a>`:""}
+      </div></div>`;}).join("")}</div>
+  <p class="note">Ссылки открывают актуальные объявления по модели. Год и комплектация влияют на цену — сверяйте характеристики с таблицей выше. Общий поиск по типу: ${cond!=="used"?`<a href="${LINK.kaspi(E.q)}" target="_blank" rel="noopener">Kaspi</a> · `:""}<a href="${LINK.olx(E.q,usedTo)}" target="_blank" rel="noopener">OLX</a> · <a href="${LINK.kobj(E.q)}" target="_blank" rel="noopener">Kaspi Объявления</a></p>`;
+}
+function copyBtn(id, getText){
+  const b = document.getElementById(id); if(!b) return;
+  b.onclick = () => { const t = getText(); const ok = () => { const s = b.nextElementSibling; if(s) s.hidden = false; };
+    try { navigator.clipboard.writeText(t).then(ok, () => fallback(t, ok)); } catch(e){ fallback(t, ok); } };
+}
+
+function renderResult(){
+  const {S, why, ranked} = score();
+  const top = ranked[0], T = TYPES[top];
+  const max = S[top], min = S[ranked[ranked.length-1]];
+  const pct = t => Math.max(5, Math.round(40 + 59*(S[t]-min)/Math.max(1,(max-min))));
+  const fs = frameSize(top);
+  const alts = ranked.slice(1,3);
+  const worst = ranked.slice(-3).reverse();
+  const acc = accessories(top);
+  const c = A.cityPct, o = 100-c;
+  const tripName = {steppe:"степные трассы",mountain:"горные вылазки",both:"степь и горы"}[A.trips];
+  const lightBike = A.storage==="nolift" ? `<p class="note">Вы носите велосипед по лестнице — ищите модель легче 13 кг.</p>` : "";
+  const reasons = why[top].length ? why[top] : [LABEL.purpose[A.purpose]];
+
+  app.innerHTML = `<div class="res">
+  <section class="hero">
+    <span class="eyebrow">Ваш тип велосипеда</span>
+    <h1>${T.name}</h1>
+    <span class="match">Совпадение ${pct(top)}%</span>
+    <p class="lead">${T.short}</p>
+    <div class="chips">${reasons.map(r=>`<span class="chip">${r}</span>`).join("")}</div>
+  </section>
+
+  <section class="profile">
+    <h3>Профиль катания</h3>
+    <div class="bar" role="img" aria-label="Город ${c}%, ${tripName||"трассы"} ${o}%"><i style="width:${c}%;background:var(--accent)"></i><i style="width:${o}%;background:var(--muted)"></i></div>
+    <div class="legend"><span style="--c:var(--accent)">Город ${c}%</span>${o?`<span style="--c:var(--muted)">${tripName} ${o}%</span>`:""}</div>
+  </section>
+
+  <section>
+    <h2>Размер и вес</h2>
+    <div class="big">
+      <div><b>${fs.size}</b><span>${fs.detail}</span></div>
+      <div><b>${fs.wheel}</b><span>диаметр колёс</span></div>
+      <div><b>${T.weight}</b><span>нормальный вес велосипеда</span></div>
+    </div>
+    ${lightBike}
+    <ul class="nope" style="--x:0">${weightNotes().map(n=>`<li style="background:var(--surface);border:1px solid var(--line)"><span>${n}</span></li>`).join("")}</ul>
+    <p class="note">Размер — ориентир по росту ${A.height} см. Перед покупкой обязательно прокатитесь: на разных брендах одна буква размера отличается.</p>
+  </section>
+
+  <section>
+    <h2>На что смотреть при покупке</h2>
+    <dl class="specs">${Object.entries(T.specs).map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>
+  </section>
+
+  <section>
+    <h2>Что вбить в фильтры</h2>
+    <p class="note">Эти значения выставляйте в фильтрах Kaspi, OLX и интернет-магазинов. Можно скопировать и показать продавцу.</p>
+    <dl class="specs">${filterRows(top).map(([a,b])=>`<dt>${a}</dt><dd><b>${b}</b></dd>`).join("")}</dl>
+    <div class="copyline"><button class="btn" id="copyFilters">Скопировать параметры</button><span class="ok" hidden>Скопировано</span></div>
+  </section>
+
+  <section>
+    <h2>Что сказать продавцу</h2>
+    <div class="say" id="sayText">${sellerText(top)}</div>
+    <div class="copyline"><button class="btn" id="copySay">Скопировать сообщение</button><span class="ok" hidden>Скопировано</span></div>
+    <p class="note">Подходит для WhatsApp-сообщения в веломагазин или продавцу на OLX.</p>
+  </section>
+
+  <section>
+    <h2>Что можно купить за ваш бюджет</h2>
+    <p class="note">Ваш бюджет: ${A.budget>=2000000?"больше 1 млн ₸":"до "+k(A.budget)}. Цены ориентировочные.</p>
+    ${budgetBlock(top)}
+  </section>
+
+  <section>
+    <h2>Примеры моделей со ссылками</h2>
+    ${modelsBlock(top)}
+  </section>
+
+  <section>
+    <h2>Где искать</h2>
+    ${A.cond!=="used"?`<h3>Новые</h3><ul class="plat">${PLATFORMS.new.map(p=>`<li><a href="${p[1]}" target="_blank" rel="noopener">${p[0]}</a><span>${p[2]}</span></li>`).join("")}</ul>`:""}
+    ${A.cond!=="new"?`<h3>Б/у</h3><ul class="plat">${PLATFORMS.used.map(p=>`<li><a href="${p[1]}" target="_blank" rel="noopener">${p[0]}</a><span>${p[2]}</span></li>`).join("")}</ul>`:""}
+  </section>
+
+  <section>
+    <h2>Альтернативы</h2>
+    <div class="alts">${alts.map(t=>`<div class="alt"><h3>${TYPES[t].name}</h3><span class="pct">${pct(t)}%</span><p>${TYPES[t].short}</p><p><a href="${A.cond==="used"?LINK.olx(EXTRA[t].q, A.budget>=2000000?null:A.budget):LINK.kaspi(EXTRA[t].q)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;text-decoration:none">Смотреть варианты →</a></p></div>`).join("")}</div>
+  </section>
+
+  <section>
+    <h2>Чего не брать</h2>
+    <ul class="nope">
+      ${worst.map(t=>`<li><b>${TYPES[t].name}</b><span>${TYPES[t].whyNot}</span></li>`).join("")}
+      ${traps(top).map(x=>`<li><b>${x[0]}</b><span>${x[1]}</span></li>`).join("")}
+    </ul>
+  </section>
+
+  ${A.cond!=="new"?`<section>
+    <h2>Чек-лист осмотра б/у</h2>
+    <p class="note">Отмечайте пункты прямо на месте осмотра.</p>
+    <ul class="check">${USED_CHECK.map((x,i)=>`<li><label for="c${i}"><input type="checkbox" id="c${i}"><span>${x[0]}<small>${x[1]}</small></span></label></li>`).join("")}</ul>
+  </section>`:""}
+
+  <section>
+    <h2>Аксессуары</h2>
+    <div class="tablewrap"><table class="acc"><tbody>
+      ${acc.L.map(r=>`<tr><td>${r[0]}</td><td>${r[1]} ₸</td></tr>`).join("")}
+      <tr class="sum"><td>Итого заложите сверху</td><td>${acc.lo}–${acc.hi} тыс. ₸</td></tr>
+    </tbody></table></div>
+    <p class="note">Не экономьте на замке и свете: замок стоит меньше 10% велосипеда, а без света вечером опасно.</p>
+  </section>
+
+  <section>
+    <div class="actions">
+      <button class="btn" id="copy">Скопировать итог</button>
+      <button class="btn primary" id="again">Пройти заново</button>
+    </div>
+    <p class="note" id="copied" hidden>Итог скопирован.</p>
+  </section>
+  </div>`;
+
+  copyBtn("copyFilters", () => filterRows(top).map(([a,b])=>a+": "+b).join("\n"));
+  copyBtn("copySay", () => sellerText(top));
+  $("#again").onclick = () => { for(const key of ["place","purpose","surface","style","dist","storage","cond","budget"]) delete A[key]; step = 0; render(); };
+  $("#copy").onclick = () => {
+    const txt = `Мой велосипед: ${T.name} (${pct(top)}%)\nРазмер: ${fs.size}, ${fs.detail}; колёса ${fs.wheel}\nВес велосипеда: ${T.weight}\n` +
+      Object.entries(T.specs).map(([a,b])=>`• ${a}: ${b}`).join("\n") +
+      "\n\nФильтры:\n" + filterRows(top).map(([a,b])=>a+": "+b).join("\n") + `\nАльтернативы: ${alts.map(t=>TYPES[t].name).join(", ")}\nНе брать: ${worst.map(t=>TYPES[t].name).join(", ")}\nАксессуары: ${acc.lo}–${acc.hi} тыс. ₸`;
+    const done = () => { $("#copied").hidden = false; };
+    try { navigator.clipboard.writeText(txt).then(done, () => fallback(txt, done)); } catch(e){ fallback(txt, done); }
+  };
+}
+function fallback(txt, done){
+  const ta = document.createElement("textarea"); ta.value = txt; ta.style.position="fixed"; ta.style.opacity="0";
+  document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); done(); }catch(e){} ta.remove();
+}
+
+render();
+})();
+</script>
+</body>
+</html>
